@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--  
+  -
+  Copyright (c) 2013 Zhang Zhuo 
+  All rights reserved.
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+  1. Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+  2. Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in the
+  documentation and/or other materials provided with the distribution.
+  3. The name of the author may not be used to endorse or promote
+  products derived from this software without specific written permission.
+  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND
+  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+  OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+  HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+  OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+  SUCH DAMAGE.
+  
+-->
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tgx.queen.db.TgxUsrMapper">
+	<insert id="createUsrSchema">
+		<![CDATA[
+		create schema if not exists ${schema_im};
+		]]>
+	</insert>
+	<insert id="createUsrTable">
+		<![CDATA[
+		create table if not exists ${schema_im}.${tName_im_master}
+		(
+			id			bigserial 	primary key,
+			im_usr_id 	char(64) 	not null,
+			c_time 		timestamp 	not null default now(),
+			m_time 		timestamp 	not null default now(),
+			c_bind		bigint[] 	not null default '{-1}',
+			bind_type	smallint	not null default 0
+		);
+		]]>
+	</insert>
+	<insert id="createUsrSubShardTable" parameterType="TgxSharder">
+		<bind name="shard_id" value="_parameter.getShard()" />
+		<bind name="low" value="_parameter.getLow()" />
+		<bind name="high" value="_parameter.getHigh()" />
+		<![CDATA[
+		create table if not exists ${schema_im}.${tName_im_master}_${shard_id}
+		(
+			check ( id >= ${low}::bigint and id < ${high}::bigint )
+		)
+		inherits
+			( ${schema_im}.${tName_im_master} );
+		]]>
+	</insert>
+	<insert id="createUsrShardInsertTriggerFun" parameterType="TgxSharder">
+		<bind name="shard_size" value="_parameter.perTableSize()" />
+		<![CDATA[
+		create or replace function
+			${schema_im}."${tName_im_master}_insert_trigger"()
+				returns trigger as $body$
+		declare shard_id bigint;
+				sub_table text;
+		begin
+				select new.id / ${shard_size} into shard_id;
+				sub_table:='${tName_im_master}_'||shard_id;
+				execute 'insert into ${schema_im}.' || quote_ident(sub_table) || ' values (($1).*)' using new;
+			return null;
+		end;
+			$body$
+		language plpgsql;
+		]]>
+	</insert>
+	<insert id="createUsrShardInsertTrigger">
+		<![CDATA[
+		create trigger
+			insert_${tName_im_master}_trigger
+		before insert on
+			${schema_im}.${tName_im_master}
+		for each row
+		execute procedure
+			${schema_im}."${tName_im_master}_insert_trigger"();
+		]]>
+	</insert>
+	<select id="countUsrShardSubTable" resultType="int">
+		<![CDATA[
+		select 
+			count(*)
+		from   
+			pg_catalog.pg_class c
+		join   
+			pg_catalog.pg_namespace n on n.oid = c.relnamespace
+		where  
+			c.relkind = 'r'
+		and    
+			c.relname like '%${tName_im_master}%'
+		and    
+			n.nspname = '${schema_im}';
+		]]>
+	</select>
+	<select id="countUsrId" resultType="long">
+		<![CDATA[
+		select 
+			last_value 
+		from 
+			${schema_im}.${tName_im_master}_id_seq;
+		]]>
+	</select>
+	<sql id="AllUsrColumns">
+		<![CDATA[
+			id,
+			im_usr_id,
+			c_bind,
+			bind_type,
+			extract(epoch from c_time) as "c_time",
+			extract(epoch from m_time) as "m_time"
+		]]>
+	</sql>
+	
+	<resultMap type="TgxUsr" id="usrResultMap"> 
+		<id column="id" property="id"/>
+		<result column="im_usr_id" property="im_usr_id"/>
+		<result column="c_time" property="c_time"/>
+		<result column="m_time" property="m_time"/>
+		<result column="bind_type" property="bind_type"/>
+		<result column="c_bind" property="c_bind" typeHandler="org.apache.ibatis.type.ArrayTypeHandler" />
+	</resultMap>
+	
+	<select id="getImUsrAll" parameterType="long" resultMap="usrResultMap">
+		<bind name="limit" value="_parameter + 1024"/>
+		select 
+			<include refid="AllUsrColumns"/>
+		from
+			${schema_im}.${tName_im_master}
+		<where>
+			<if test="_parameter &gt; 0">
+				<![CDATA[
+				id >=${_parameter}::bigint and id < ${limit}::bigint
+				]]>
+			</if>
+			<if test="_parameter &lt;= 0">
+				<![CDATA[
+				id > 0::bigint and id <= 1024::bigint
+				]]>
+			</if>
+		</where> 
+	</select>
+	<select id="getImUsrByIndex" parameterType="long" resultMap="usrResultMap">
+		select
+			<include refid="AllUsrColumns"/>
+		from
+			${schema_im}.${tName_im_master}
+		where
+			id = #{id}::bigint
+	</select>
+	<insert id="insertUsr" parameterType="TgxUsr">
+		<![CDATA[
+		insert into ${schema_im}.${tName_im_master}
+			( im_usr_id )
+		values
+			( #{im_usr_id} )
+		]]>
+		<selectKey order="AFTER" resultType="long" keyProperty="id">
+			<![CDATA[
+			select currval('${schema_im}.${tName_im_master}_id_seq')
+			]]>
+		</selectKey>
+	</insert>
+	<delete id="deleteUsr" parameterType="TgxUsr">
+		<![CDATA[
+		delete from
+			${schema_im}.${tName_im_master}
+		where
+			id=#{id}::bigint
+		]]>
+	</delete>
+	<update id="updateUsr" parameterType="TgxUsr">
+		update
+			${schema_im}.${tName_im_master}
+		<set>
+			c_bind=array
+			<foreach collection="c_bind" item="item" index="index" open="[" close="]" separator=",">
+				#{item}
+			</foreach>
+			,m_time=now()
+		</set>
+		where
+			id=#{id}::bigint
+	</update>
+</mapper>
+
+
+  

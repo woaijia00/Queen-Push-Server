@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src/main/java"/>
+	<classpathentry kind="src" path="src/main/performance"/>
+	<classpathentry kind="src" path="src/main/test"/>
+	<classpathentry kind="src" path="src/main/config"/>
+	<classpathentry kind="src" path="src/main/java-opensource"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="lib/postgresql-9.3-1100.jdbc41.jar"/>
+	<classpathentry kind="lib" path="lib/mybatis-3.2.6.jar"/>
+	<classpathentry kind="lib" path="test-libs/osx/swt.jar" sourcepath="LIB-SRC/swt_src.zip"/>
+	<classpathentry kind="lib" path="lib/disruptor-3.3.0.jar" sourcepath="LIB-SRC/disruptor-3.3.0-sources.jar"/>
+	<classpathentry kind="lib" path="lib/commons-collections4-4.0.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

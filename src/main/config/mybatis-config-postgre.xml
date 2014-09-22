@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--  
+  -
+  Copyright (c) 2013 Zhang Zhuo 
+  All rights reserved.
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+  1. Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+  2. Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in the
+  documentation and/or other materials provided with the distribution.
+  3. The name of the author may not be used to endorse or promote
+  products derived from this software without specific written permission.
+  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND
+  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+  OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+  HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+  OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+  SUCH DAMAGE.
+  
+-->
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<properties resource="config.properties" />
+	<typeAliases>
+		<typeAlias alias="TgxClient" type="com.tgx.queen.push.bean.TgxClient" />
+		<typeAlias alias="TgxTag" type="com.tgx.queen.push.bean.TgxTag" />
+		<typeAlias alias="TgxUsr" type="com.tgx.queen.im.bean.TgxUsr" />
+		<typeAlias alias="TgxBind" type="com.tgx.queen.im.bean.TgxBind" />
+		<typeAlias alias="TgxSharder" type="com.tgx.queen.db.bean.TgxSharder" />
+	</typeAliases>
+	<environments default="remote">
+		<environment id="local">
+			<transactionManager type="JDBC" />
+			<dataSource type="POOLED">
+				<property name="driver" value="${driver}" />
+				<property name="url" value="jdbc:postgresql://localhost:5432/tgx_im" />
+				<property name="username" value="${username}" />
+				<property name="password" value="${password}" />
+				<property name="poolMaximumIdleConnections" value="0" />
+				<property name="poolMaximumActiveConnections" value="20" />
+			</dataSource>
+		</environment>
+		<environment id="remote">
+			<transactionManager type="JDBC" />
+			<dataSource type="POOLED">
+				<property name="driver" value="${driver}" />
+				<property name="url" value="${remote}" />
+				<property name="username" value="${username}" />
+				<property name="password" value="${password}" />
+				<property name="poolMaximumIdleConnections" value="0" />
+				<property name="poolMaximumActiveConnections" value="20" />
+			</dataSource>
+		</environment>
+		<environment id="remote1">
+			<transactionManager type="JDBC" />
+			<dataSource type="POOLED">
+				<property name="driver" value="${driver}" />
+				<property name="url" value="${remote1}" />
+				<property name="username" value="${username}" />
+				<property name="password" value="${password}" />
+				<property name="poolMaximumIdleConnections" value="0" />
+				<property name="poolMaximumActiveConnections" value="20" />
+			</dataSource>
+		</environment>
+	</environments>
+	<mappers>
+		<mapper resource="mybatis_tgxclient_mapper.xml" />
+		<mapper resource="mybatis_tgxusr_mapper.xml" />
+		<mapper resource="mybatis_tgxbind_mapper.xml" />
+		<mapper resource="mybatis_tgxtag_mapper.xml" />
+	</mappers>
+</configuration>

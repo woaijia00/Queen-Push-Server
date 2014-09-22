@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="push.protocol"/>
+	<classpathentry kind="src" path="test"/>
+	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/TgxTinaIo"/>
+	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/TgxTinaBase"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="test-libs/windows/x86/swt.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

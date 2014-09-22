@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--  
+  -
+  Copyright (c) 2013 Zhang Zhuo 
+  All rights reserved.
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+  1. Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+  2. Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in the
+  documentation and/or other materials provided with the distribution.
+  3. The name of the author may not be used to endorse or promote
+  products derived from this software without specific written permission.
+  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND
+  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+  OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+  HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+  OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+  SUCH DAMAGE.
+  
+-->
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tgx.queen.db.TgxBindMapper">
+	<resultMap type="TgxBind" id="bind2usr">
+		<id column="bind_index" property="bind_index" />
+		<result column="app_id" property="app_id" />
+		<result column="im_usr_index" property="im_usr_index" />
+	</resultMap>
+	<resultMap type="TgxBind" id="usr2bind">
+		<id column="im_usr_index" property="im_usr_index" />
+		<result column="app_id" property="app_id" />
+		<result column="bind_index" property="bind_index" />
+	</resultMap>
+	<select id="getBindUsrByBindIndex" parameterType="long"
+		resultMap="bind2usr">
+		select 
+			* 
+		from 
+			${schema_oauth}.${tName_bind}
+		where 
+			bind_index = #{bind_index}
+	</select>
+	<select id="getBindsByUsrIndex" parameterType="long" 
+		resultMap="usr2bind">
+	 	select 
+			* 
+		from 
+			${schema_oauth}.${tName_bind}
+		where 
+			im_usr_index = #{im_usr_index}
+	</select>
+	<insert id="insertBind" parameterType="TgxBind">
+		insert into	${schema_oauth}.${tName_bind} 
+			( bind_index,im_usr_index,app_id )
+		values
+			( #{bind_index},#{im_usr_index},#{app_id} )
+	</insert>
+	<delete id="deleteBind" parameterType="TgxBind">
+		delete from ${schema_oauth}.${tName_bind}
+		<where>
+			<if test="serial != 0">
+				id = #{id}
+			</if>
+			<if test="im_usr_index != -1">
+				OR im_usr_index = #{im_usr_index}
+			</if>
+			<if test="bind_index != -1">
+				AND bind_index = #{bind_index}
+			</if>
+			<if test="app_id != null">
+				AND app_id = #{app_id}
+			</if>
+		</where>
+	</delete>
+	<insert id="createBindSchema">
+		create schema if not exists ${schema_oauth}
+	</insert>
+	<insert id="createBindTable" >
+		create table if not exists ${schema_oauth}.${tName_bind}
+		(
+			id 				bigserial,
+			bind_index	 	bigint 		default -1,
+			im_usr_index    bigint 		default -1,
+			app_id  		char(64) 	not null,
+			c_time 			timestamp 	default now(),
+			primary	key
+				( bind_index, im_usr_index, app_id )
+		)
+	</insert>
+</mapper>

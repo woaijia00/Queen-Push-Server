@@ -1,0 +1,225 @@
+#!/usr/bin/env bash
+
+##############################################################################
+##
+##  TgxQueenServer start up script for UN*X
+##	Author cann
+##
+##############################################################################
+
+#-----------------------------------------------------------------------------
+# This settings can be modified to fix the needs of push system
+
+APP_LOG_NAME="TgxQueenServer"
+
+CmMainClass="com.tgx.queen.cm.CmServerNode"
+ImMainClass="com.tgx.queen.im.ImServerLogic"
+TestMainClass="com.tgx.queen.test.client.TestConsoleClient"
+
+#-----------------------------------------------------------------------------
+
+# Add default JVM options here. You can also use JAVA_OPTS and TGX_QUEEN_SERVER_OPTS to pass JVM options to this script.
+DEFAULT_JVM_OPTS=""
+
+APP_NAME="TgxQueenServer"
+APP_BASE_NAME=`basename "$0"`
+
+
+# Attempt to set APP_HOME
+# Resolve links: $0 may be a link
+PRG="$0"
+# Need this for relative symlinks.
+while [ -h "$PRG" ] ; do
+    ls=`ls -ld "$PRG"`
+    link=`expr "$ls" : '.*-> \(.*\)$'`
+    if expr "$link" : '/.*' > /dev/null; then
+        PRG="$link"
+    else
+        PRG=`dirname "$PRG"`"/$link"
+    fi
+done
+SAVED="`pwd`"
+cd "`dirname \"$PRG\"`/.." >&-
+APP_HOME="`pwd -P`"
+PIDFILE=$APP_HOME/bin/.TQS.pid
+cd "$SAVED" >&-
+APP_JARNAME=`basename $APP_HOME`.jar
+LD_LIBRARY_PATH=$APP_HOME/jni:/lib:/usr/lib:/usr/local/lib
+
+CLASSPATH=$APP_HOME/lib/$APP_JARNAME:$APP_HOME/lib/commons-collections4-4.0.jar:\
+$APP_HOME/lib/disruptor-3.3.0.jar:$APP_HOME/lib/gsp.jar:$APP_HOME/lib/mybatis-3.2.6.jar:$APP_HOME/lib/java_memcached-release_2.6.6.jar:\
+$APP_HOME/lib/jedis-2.0.0.jar:$APP_HOME/lib/slf4j-api-1.7.2.jar:$APP_HOME/lib/slf4j-simple-1.6.1.jar:\
+$APP_HOME/lib/postgresql-9.3-1100.jdbc41.jar:$APP_HOME/lib/rabbitmq-client.jar:$APP_HOME/lib/zookeeper-3.4.6.jar:\
+$APP_HOME/lib/fastjson-1.1.26.jar:$APP_HOME/lib/commons-pool-1.5.4.jar:$APP_HOME/lib/slf4j-api-1.6.1.jar:\
+$APP_HOME/lib/commons-lang-2.5.jar:$APP_HOME/lib/jackson-all-1.8.5.jar:$APP_HOME/jni/libtgxCryptUtil.so
+
+# Determine the Java command to use to start the JVM.
+if [ -n "$JAVA_HOME" ] ; then
+    if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
+        # IBM's JDK on AIX uses strange locations for the executables
+        JAVACMD="$JAVA_HOME/jre/sh/java"
+    else
+        JAVACMD="$JAVA_HOME/bin/java"
+    fi
+    if [ ! -x "$JAVACMD" ] ; then
+        die "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
+
+Please set the JAVA_HOME variable in your environment to match the
+location of your Java installation."
+    fi
+else
+    JAVACMD="java"
+    which java >/dev/null 2>&1 || die "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
+
+Please set the JAVA_HOME variable in your environment to match the
+location of your Java installation."
+fi
+
+
+
+### server pid
+PID=""
+getPid(){
+	if [ -f "$PIDFILE" ]
+	then 
+		if [ -r "$PIDFILE" ]
+		then
+			PID=`cat "$PIDFILE"`
+		fi
+	fi
+}
+
+#check the super user
+checkUser(){
+	#Resolve the location of the 'id' command
+	IDEXE="/usr/xpg4/bin/id"
+	if [ ! -x "$IDEXE" ]
+	then
+		IDEXE="/usr/bin/id"
+		if [ ! -x "$IDEXE" ]
+		then 
+			echo "Unable to locate 'id'."
+			echo "Please report this message along with the location of the command on your system."
+			exit 1
+		fi
+	fi
+	
+	#Check the if the script is running as root
+	LUID=`$IDEXE -u`
+	if [ ! $LUID -eq 0 ]
+	then 
+		echo "*******************************************"
+		echo "**********NEEDED TO RUN AS ROOT************"
+		echo "*******************************************"
+		echo "If you want to run this script, you must run as root."
+		exit 1
+	fi
+}
+
+#start the cm service
+startCm(){
+	echo "Starting $APP_LOG_NAME cm service..."
+	getPid
+	if [ "X$PID" = "X" ]
+	then
+		exec "$JAVACMD" -classpath "$CLASSPATH" -Xms1024m -Xmx30000m -Djava.library.path=$LD_LIBRARY_PATH "$CmMainClass" &
+		echo $! > "$PIDFILE"
+	else
+		echo "the $APP_LOG_NAME is already running."
+		exit
+	fi
+}
+
+#start the im service
+startIm(){
+	echo "Starting $APP_LOG_NAME im service..."
+	getPid
+	if [ "X$PID" = "X" ]
+	then
+		exec "$JAVACMD" -classpath "$CLASSPATH" -Xms1024m -Xmx30000m -Djava.library.path=$LD_LIBRARY_PATH "$ImMainClass" &
+		echo $! > "$PIDFILE"
+	else
+		echo "the $APP_LOG_NAME is already running."
+		exit
+	fi
+}
+
+#start the test service
+startTest(){
+	echo "Starting $APP_LOG_NAME test service..."
+	getPid
+	if [ "X$PID" = "X" ]
+	then
+		exec "$JAVACMD" -classpath "$CLASSPATH" -Xms1024m -Xmx30000m -Djava.library.path=$LD_LIBRARY_PATH "$TestMainClass" &
+		echo $! > "$PIDFILE"
+	else
+		echo "the $APP_LOG_NAME is already running."
+		exit
+	fi
+}
+
+#echo help message
+echoHelp(){
+	echo "cm --start the cm service"
+	echo "im --start the im service"
+	echo "stop --stop the service"
+	echo "help --view the help msg"
+}
+
+#stop the push service
+stopServer(){
+	echo "trying to stop $0 service"
+	if [ -f "$PIDFILE" ]
+	then
+		pid=`cat "$PIDFILE"`
+		testPS=`ps -p $pid`
+		exitCode=`echo $?`
+		if [ $exitCode -eq 0 ]
+		then
+			echo "killing the process..."
+			kill "$pid"
+		fi
+		rm -rf "$PIDFILE"
+	else
+		echo "The server is not running."
+	fi
+	echo "stoped $0 service"
+}
+
+
+
+# case the input agrs
+	case "$1" in
+	'cm')
+		checkUser
+		startCm
+		;;
+	'im')
+		checkUser
+		startIm
+		;;
+	'test')
+		checkUser
+		startTest
+		;;
+	'help')
+		echoHelp
+		;;
+	'stop')
+		checkUser
+		stopServer
+		;;
+	*)
+		echo "Usage: $0 { cm | im | stop | help}"
+		echo "Use \"$0 help\" to see details"
+		exit 1
+		;;
+	esac
+
+
+
+
+
+
+
+

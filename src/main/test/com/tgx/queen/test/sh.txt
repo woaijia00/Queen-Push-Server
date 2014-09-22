@@ -1,0 +1,6 @@
+ 主库服务器上:
+      ./slon tgx2 "dbname=tgx_im host=83.90.25.51 user=tgx_jdbc password=1 port=5432" & 
+ 
+  从库服务器上:
+      ./slon tgx2 "dbname=tgx_im host=83.90.25.51 user=tgx_jdbc password=1 port=5432" & 
+ 

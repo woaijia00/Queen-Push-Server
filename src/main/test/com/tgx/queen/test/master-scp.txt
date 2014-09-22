@@ -1,0 +1,21 @@
+#!/bin/sh
+SLONIK=/usr/local/bin/slonik
+CLUSTER=tgx2
+MASTER_ID=1
+MASTER_HOST=83.90.25.50
+MASTER_DBNAME=tgx_im
+MASTER_USER=tgx_jdbc
+MASTER_PASSWORD=1
+
+SLAVER_ID=2
+SLAVER_HOST=83.90.25.51
+SLAVER_DBNAME=tgx_im
+SLAVER_USER=tgx_jdbc
+SLAVER_PASSWORD=1
+
+$SLONIK<<_EOF_
+cluster name = $CLUSTER;
+node $MASTER_ID admin conninfo = 'dbname=$MASTER_DBNAME host=$MASTER_HOST user=$MASTER_USER password=$MASTER_PASSWORD';
+node $SLAVER_ID admin conninfo = 'dbname=$SLAVER_DBNAME host=$SLAVER_HOST user=$SLAVER_USER password=$SLAVER_PASSWORD';
+subscribe set ( id=1, provider=$MASTER_ID, receiver=$SLAVER_ID, forward=no);
+_EOF_

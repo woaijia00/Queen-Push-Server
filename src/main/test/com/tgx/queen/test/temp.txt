@@ -1,0 +1,36 @@
+#!/bin/sh
+SLONIK=/usr/local/bin/slonik
+CLUSTERNAME=tgx_push
+REPLICATIONUSER=tgx_jdbc
+MASTERDBNAME=tgx_im
+SLAVEDBNAME=tgx_im
+MASTERHOST=83.90.25.50
+SLAVEHOST=83.90.25.51
+$SLONIK <<_EOF_
+cluster name = $CLUSTERNAME;
+node 1 admin conninfo = 'dbname=$MASTERDBNAME host=$MASTERHOST user=$REPLICATIONUSER';
+node 2 admin conninfo = 'dbname=$SLAVEDBNAME host=$SLAVEHOST user=$REPLICATIONUSER';
+
+init cluster(id=1,comment='Master Node');
+
+create set(id=1, origin=1, comment='All pgbench test tables');
+set add table (set id=1,origin=1,id=1,fully qualified name='test.tt', comment='test table');
+create set(id=2, origin=1, comment='All pgbench client tables');
+set add table (set id=2,origin=1,id=2,fully qualified name='tgx_cm.t_cm_client', comment='client table');
+create set(id=3, origin=1, comment='All pgbench hash_global tables');
+set add table (set id=3,origin=1,id=3,fully qualified name='tgx_cm.t_cm_hash_global', comment='cm_hash_global table');
+create set(id=4, origin=1, comment='All pgbench im_usr tables');
+set add table (set id=4,origin=1,id=4,fully qualified name='tgx_im.t_im_usr', comment='im_usr table');
+
+store node (id=2, comment='Slave node', event node=1);
+store path (server=1,client=2,conninfo='dbname=$MASTERDBNAME host=$MASTERHOST user=$REPLICATIONUSER');
+store path (server=2,client=1,conninfo='dbname=$SLAVEDBNAME host=$SLAVEHOST user=$REPLICATIONUSER');
+
+store listen (origin=1, provider=1, receiver=2);
+#store listen (origin=2, provider=2, receiver=1);
+
+subscribe set (id=1,provider=1,receiver=2,forward=no);
+subscribe set (id=2,provider=1,receiver=2,forward=no);
+subscribe set (id=3,provider=1,receiver=2,forward=no);
+subscribe set (id=4,provider=1,receiver=2,forward=no)；
+_EOF_

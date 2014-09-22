@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--  
+  -
+  Copyright (c) 2013 Zhang Zhuo 
+  All rights reserved.
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+  1. Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+  2. Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in the
+  documentation and/or other materials provided with the distribution.
+  3. The name of the author may not be used to endorse or promote
+  products derived from this software without specific written permission.
+  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND
+  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+  OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+  HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+  OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+  SUCH DAMAGE.
+  
+-->
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+ <mapper namespace="com.tgx.queen.db.TgxTagMapper">
+ 	<insert id="createTagSchema">
+ 		<![CDATA[
+		create schema if not exists ${schema_cm};
+		]]>
+	</insert>
+	
+	<insert id="createTagDefineTable"><!-- 某个域中只能存在64个不同的TAG 为了便于计算 -->
+		<![CDATA[
+		create table if not exists
+			${schema_cm}.${tName_cm_tag_define}
+		(
+			 id			serial,
+			 tag		varchar(64),
+			 app_id		char(64),
+			 domain		char(64)
+		);
+		]]>
+	</insert>
+	
+	<insert id="insertTagDefine" parameterType="TgxTag">
+		<![CDATA[
+		insert into 
+			${schema_cm}.${tName_cm_tag_define}
+			(tag, app_id, domain)
+		values
+			(#{tag}, #{app_id}, #{domain});
+		]]>
+		<selectKey order="AFTER" resultType="int"  keyProperty="id">
+			select currval('${schema_cm}.${tName_cm_tag_define}_id_seq')
+		</selectKey>
+	</insert>
+	<sql id="AllTagColumn">
+		id,
+		tag,
+		app_id,
+		domain
+	</sql>
+	<select id="getTagDefine" resultType="TgxTag">
+		select 
+			 <include refid="AllTagColumn"/>
+		from 
+			${schema_cm}.${tName_cm_tag_define}
+	</select>
+	<select id="getClientTags" resultType="TgxTag" >
+		select 
+			<include refid="AllTagColumn"/>
+		from
+			${schema_cm}.${tName_cm_tag_define}
+		where
+			id in 
+			<foreach collection="tagIds" open="(" close=")" separator="," index="index" item="item">
+				#{item}
+			</foreach>		 
+	</select>
+	
+	<insert id="createTagTriggerFun">
+		create or replace function
+			${schema_cm}."${tName_cm_tag_data}_insert_trigger"()
+				returns trigger as $body$
+		begin
+				select 
+					mask 
+				form 
+					${schema_cm}.${tName_cm_tag_data}
+				where 
+					client_index=new.client_index 
+				and
+					app_id=new.app_id
+				
+		
+		end;
+			$body$
+		language plpgsql;
+	</insert>
+	
+ </mapper>
